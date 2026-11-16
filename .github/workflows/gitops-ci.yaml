@@ -1,0 +1,89 @@
+name: GitOps Multi-Environment Delivery Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ========================================================
+  # Job 1: Test Python Payment Microservice
+  # ========================================================
+  test-microservice:
+    name: Run Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+
+      - name: Run Pytest Suite
+        run: |
+          pytest tests/ -v
+
+  # ========================================================
+  # Job 2: Lint & Validate Helm Chart & Environment Overlays
+  # ========================================================
+  validate-helm:
+    name: Helm Lint & Environment Template Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.3'
+
+      - name: Lint Base Helm Chart
+        run: helm lint charts/payment-gateway
+
+      - name: Validate Dev Environment Template
+        run: helm template payment-dev charts/payment-gateway -f environments/dev/values.yaml > /dev/null
+
+      - name: Validate Staging Environment Template
+        run: helm template payment-staging charts/payment-gateway -f environments/staging/values.yaml > /dev/null
+
+      - name: Validate Production Environment Template
+        run: helm template payment-prod charts/payment-gateway -f environments/prod/values.yaml > /dev/null
+
+  # ========================================================
+  # Job 3: Build & Healthcheck Container Image
+  # ========================================================
+  build-container:
+    name: Build & Verify Docker Image
+    needs: test-microservice
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Hardened Container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          tags: payment-gateway:${{ github.sha }}
+
+      - name: Verify Container Health Probe
+        run: |
+          docker run -d --name test-payment -p 8080:8080 payment-gateway:${{ github.sha }}
+          sleep 5
+          curl --retry 5 --retry-delay 2 --retry-connrefused -f http://localhost:8080/healthz || (docker logs test-payment && exit 1)
+          docker stop test-payment && docker rm test-payment

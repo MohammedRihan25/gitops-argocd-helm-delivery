@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: payment-gateway-rollout
+  namespace: payment-prod
+  labels:
+    app: payment-gateway
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      analysis:
+        templates:
+          - templateName: payment-success-rate-check
+        args:
+          - name: service-name
+            value: payment-gateway
+      steps:
+        # Step 1: Route 20% traffic to canary pods
+        - setWeight: 20
+        # Step 2: Pause 3 minutes for automated analysis
+        - pause: { duration: 3m }
+        # Step 3: Route 50% traffic
+        - setWeight: 50
+        # Step 4: Pause 5 minutes for validation
+        - pause: { duration: 5m }
+        # Step 5: Route 100% traffic
+        - setWeight: 100
+  selector:
+    matchLabels:
+      app: payment-gateway
+  template:
+    metadata:
+      labels:
+        app: payment-gateway
+    spec:
+      containers:
+        - name: payment-gateway
+          image: 123456789012.dkr.ecr.us-east-1.amazonaws.com/payment-gateway:1.0.0
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: payment-gateway
+description: Production-grade Helm chart for Cloud-Native Payment Gateway deployed via ArgoCD
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Platform Engineering Team
+keywords:
+  - gitops
+  - argocd
+  - payment
+  - microservice
+  - kubernetes

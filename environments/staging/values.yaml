@@ -1,0 +1,34 @@
+environment: staging
+
+replicaCount: 2
+
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/payment-gateway
+  tag: "1.0.0-rc1"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: payment-staging.company.internal
+      paths:
+        - path: /
+          pathType: Prefix

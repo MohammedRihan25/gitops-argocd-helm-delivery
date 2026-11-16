@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  payment-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: gitops-payment-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - APP_ENV=local
+      - APP_VERSION=1.0.0
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

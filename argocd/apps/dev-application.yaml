@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: payment-gateway-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MohammedRihan25/gitops-argocd-helm-delivery.git
+    targetRevision: HEAD
+    path: charts/payment-gateway
+    helm:
+      valueFiles:
+        - ../../environments/dev/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: payment-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

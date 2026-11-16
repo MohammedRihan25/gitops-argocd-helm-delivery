@@ -1,0 +1,17 @@
+.git
+.github
+.gitignore
+.dockerignore
+charts/
+environments/
+argocd/
+rollouts/
+docs/
+tests/
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+*.md
+docker-compose.yml
